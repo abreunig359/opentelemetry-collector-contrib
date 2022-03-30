@@ -37,7 +37,7 @@ const (
 )
 
 var (
-	testLogs = []byte(`{"resourceLogs":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"dotnet"}}]},"scopeLogs":[{"scope":{},"logRecords":[{"timeUnixNano":"1643240673066096200","severityText":"Information","name":"FilterModule.Program","body":{"stringValue":"Message Body"},"flags":1,"traceId":"7b20d1349ef9b6d6f9d4d1d4a3ac2e82","spanId":"0c2ad924e1771630"}]}]}]}`)
+	testLogs = []byte(`{"resourceLogs":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"dotnet"}}]},"scopeLogs":[{"scope":{},"logRecords":[{"timeUnixNano":"1643240673066096200","severityText":"Information","body":{"stringValue":"Message Body"},"flags":1,"traceId":"7b20d1349ef9b6d6f9d4d1d4a3ac2e82","spanId":"0c2ad924e1771630"}]}]}]}`)
 )
 
 // Tests proper wrapping of a log record to an envelope
@@ -64,8 +64,6 @@ func TestLogRecordToEnvelope(t *testing.T) {
 	assert.Equal(t, envelope.Tags[contracts.OperationId], hexTraceID)
 
 	assert.Equal(t, messageData.Properties[spanIDTag], logRecord.SpanID().HexString())
-	assert.Equal(t, messageData.Properties[categoryNameTag], logRecord.Name())
-
 }
 
 // Test conversion from logRecord.SeverityText() to contracts.SeverityLevel()

@@ -168,11 +168,11 @@ func spanToRequestData(span pdata.Span, incomingSpanType spanType) *contracts.Re
 
 	switch incomingSpanType {
 	case httpSpanType:
-		fillRequestDataHTTP(span, data)
+		fillRequestDataHTTP(span.Attributes(), span.Name(), data)
 	case rpcSpanType:
-		fillRequestDataRPC(span, data)
+		fillRequestDataRPC(span.Attributes(), data)
 	case messagingSpanType:
-		fillRequestDataMessaging(span, data)
+		fillRequestDataMessaging(span.Attributes(), data)
 	case unknownSpanType:
 		copyAttributesWithoutMapping(span.Attributes(), data.Properties, data.Measurements)
 	}
@@ -194,13 +194,13 @@ func spanToRemoteDependencyData(span pdata.Span, incomingSpanType spanType) *con
 
 	switch incomingSpanType {
 	case httpSpanType:
-		fillRemoteDependencyDataHTTP(span, data)
+		fillRemoteDependencyDataHTTP(span.Attributes(), data)
 	case rpcSpanType:
-		fillRemoteDependencyDataRPC(span, data)
+		fillRemoteDependencyDataRPC(span.Attributes(), data)
 	case databaseSpanType:
-		fillRemoteDependencyDataDatabase(span, data)
+		fillRemoteDependencyDataDatabase(span.Attributes(), data)
 	case messagingSpanType:
-		fillRemoteDependencyDataMessaging(span, data)
+		fillRemoteDependencyDataMessaging(span.Attributes(), data)
 	case unknownSpanType:
 		copyAttributesWithoutMapping(span.Attributes(), data.Properties, data.Measurements)
 	}
@@ -215,8 +215,8 @@ func getFormattedHTTPStatusValues(statusCode int64) (statusAsString string, succ
 
 // Maps HTTP Server Span to AppInsights RequestData
 // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/http.md#semantic-conventions-for-http-spans
-func fillRequestDataHTTP(span pdata.Span, data *contracts.RequestData) {
-	attrs := copyAndExtractHTTPAttributes(span.Attributes(), data.Properties, data.Measurements)
+func fillRequestDataHTTP(attributes pdata.Map, name string, data *contracts.RequestData) {
+	attrs := copyAndExtractHTTPAttributes(attributes, data.Properties, data.Measurements)
 
 	if attrs.HTTPStatusCode != 0 {
 		data.ResponseCode, data.Success = getFormattedHTTPStatusValues(attrs.HTTPStatusCode)
@@ -235,7 +235,7 @@ func fillRequestDataHTTP(span pdata.Span, data *contracts.RequestData) {
 	if attrs.HTTPRoute != "" {
 		sb.WriteString(prefixIfNecessary(attrs.HTTPRoute, "/"))
 	} else {
-		sb.WriteString(span.Name())
+		sb.WriteString(name)
 	}
 
 	data.Name = sb.String()
@@ -301,8 +301,8 @@ func fillRequestDataHTTP(span pdata.Span, data *contracts.RequestData) {
 
 // Maps HTTP Client Span to AppInsights RemoteDependencyData
 // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/http.md
-func fillRemoteDependencyDataHTTP(span pdata.Span, data *contracts.RemoteDependencyData) {
-	attrs := copyAndExtractHTTPAttributes(span.Attributes(), data.Properties, data.Measurements)
+func fillRemoteDependencyDataHTTP(attributes pdata.Map, data *contracts.RemoteDependencyData) {
+	attrs := copyAndExtractHTTPAttributes(attributes, data.Properties, data.Measurements)
 
 	data.Type = "HTTP"
 	if attrs.HTTPStatusCode != 0 {
@@ -388,8 +388,8 @@ func fillRemoteDependencyDataHTTP(span pdata.Span, data *contracts.RemoteDepende
 
 // Maps RPC Server Span to AppInsights RequestData
 // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md
-func fillRequestDataRPC(span pdata.Span, data *contracts.RequestData) {
-	attrs := copyAndExtractRPCAttributes(span.Attributes(), data.Properties, data.Measurements)
+func fillRequestDataRPC(attributes pdata.Map, data *contracts.RequestData) {
+	attrs := copyAndExtractRPCAttributes(attributes, data.Properties, data.Measurements)
 
 	data.ResponseCode = getRPCStatusCodeAsString(attrs)
 
@@ -414,8 +414,8 @@ func fillRequestDataRPC(span pdata.Span, data *contracts.RequestData) {
 
 // Maps RPC Client Span to AppInsights RemoteDependencyData
 // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md
-func fillRemoteDependencyDataRPC(span pdata.Span, data *contracts.RemoteDependencyData) {
-	attrs := copyAndExtractRPCAttributes(span.Attributes(), data.Properties, data.Measurements)
+func fillRemoteDependencyDataRPC(attributes pdata.Map, data *contracts.RemoteDependencyData) {
+	attrs := copyAndExtractRPCAttributes(attributes, data.Properties, data.Measurements)
 
 	data.ResultCode = getRPCStatusCodeAsString(attrs)
 
@@ -440,8 +440,8 @@ func getRPCStatusCodeAsString(rpcAttributes *RPCAttributes) (statusCodeAsString 
 
 // Maps Database Client Span to AppInsights RemoteDependencyData
 // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/database.md
-func fillRemoteDependencyDataDatabase(span pdata.Span, data *contracts.RemoteDependencyData) {
-	attrs := copyAndExtractDatabaseAttributes(span.Attributes(), data.Properties, data.Measurements)
+func fillRemoteDependencyDataDatabase(attributes pdata.Map, data *contracts.RemoteDependencyData) {
+	attrs := copyAndExtractDatabaseAttributes(attributes, data.Properties, data.Measurements)
 
 	data.Type = attrs.DBSystem
 
@@ -458,8 +458,8 @@ func fillRemoteDependencyDataDatabase(span pdata.Span, data *contracts.RemoteDep
 
 // Maps Messaging Consumer/Server Span to AppInsights RequestData
 // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/messaging.md
-func fillRequestDataMessaging(span pdata.Span, data *contracts.RequestData) {
-	attrs := copyAndExtractMessagingAttributes(span.Attributes(), data.Properties, data.Measurements)
+func fillRequestDataMessaging(attributes pdata.Map, data *contracts.RequestData) {
+	attrs := copyAndExtractMessagingAttributes(attributes, data.Properties, data.Measurements)
 
 	// TODO Understand how to map attributes to RequestData fields
 	if attrs.MessagingURL != "" {
@@ -473,8 +473,8 @@ func fillRequestDataMessaging(span pdata.Span, data *contracts.RequestData) {
 
 // Maps Messaging Producer/Client Span to AppInsights RemoteDependencyData
 // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/messaging.md
-func fillRemoteDependencyDataMessaging(span pdata.Span, data *contracts.RemoteDependencyData) {
-	attrs := copyAndExtractMessagingAttributes(span.Attributes(), data.Properties, data.Measurements)
+func fillRemoteDependencyDataMessaging(span pdata.Map, data *contracts.RemoteDependencyData) {
+	attrs := copyAndExtractMessagingAttributes(span, data.Properties, data.Measurements)
 
 	// TODO Understand how to map attributes to RemoteDependencyData fields
 	data.Data = attrs.MessagingURL
