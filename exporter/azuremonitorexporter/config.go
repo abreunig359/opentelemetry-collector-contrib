@@ -27,4 +27,15 @@ type Config struct {
 	InstrumentationKey      string        `mapstructure:"instrumentation_key"`
 	MaxBatchSize            int           `mapstructure:"maxbatchsize"`
 	MaxBatchInterval        time.Duration `mapstructure:"maxbatchinterval"`
+
+	// SeverityMappingConfig defines a mapping of application insights log levels to standard log levels
+	SeverityMapping SeverityMappingConfig `mapstructure:"severity_mapping"`
+}
+
+type SeverityMappingConfig struct {
+	Verbose     []string `mapstructure:"Verbose"`
+	Information []string `mapstructure:"Information"`
+	Warning     []string `mapstructure:"Warning"`
+	Error       []string `mapstructure:"Error"`
+	Critical    []string `mapstructure:"Critical"`
 }

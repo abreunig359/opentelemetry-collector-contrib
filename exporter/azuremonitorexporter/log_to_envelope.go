@@ -30,7 +30,7 @@ var errNoSuccessAttrAvailable = stdlibErrors.New("no success attribute available
 const (
 	traceIDTag                                = "TraceId"
 	spanIDTag                                 = "SpanId"
-	applicationInsightsTelemetryTypeAttribute = "ApplicationInsightsTelemetryType"
+	applicationInsightsTelemetryTypeAttribute = "applicationInsightsTelemetryType"
 	durationAttributeKey                      = "duration"
 	responseCodeAttributeKey                  = "responseCode"
 	resultCodeAttributeKey                    = "resultCode"
@@ -40,22 +40,15 @@ const (
 type AiTelemetryType string
 
 const (
-	ApplicationInsightsTelemetryTypeDependency AiTelemetryType = "Dependency"
+	ApplicationInsightsTelemetryTypeDependency AiTelemetryType = "RemoteDependency"
 	ApplicationInsightsTelemetryTypeRequest    AiTelemetryType = "Request"
 	ApplicationInsightsTelemetryTypeEvent      AiTelemetryType = "Event"
 	ApplicationInsightsTelemetryTypeMessage    AiTelemetryType = "Message"
 )
 
-var severityLevelMap = map[string]contracts.SeverityLevel{
-	"Verbose":     contracts.Verbose,
-	"Information": contracts.Information,
-	"Warning":     contracts.Warning,
-	"Error":       contracts.Error,
-	"Critical":    contracts.Critical,
-}
-
 type logPacker struct {
-	logger *zap.Logger
+	logger                *zap.Logger
+	configSeverityMapping SeverityMappingConfig
 }
 
 func (packer *logPacker) LogRecordToEnvelope(logRecord pdata.LogRecord) *contracts.Envelope {
@@ -112,12 +105,33 @@ func (packer *logPacker) sanitize(sanitizeFunc func() []string) {
 }
 
 func (packer *logPacker) toAiSeverityLevel(severityText string) contracts.SeverityLevel {
-	if severityLevel, ok := severityLevelMap[severityText]; ok {
-		return severityLevel
+	if ok := findCfgSeverityLevel(packer.configSeverityMapping.Verbose, severityText); ok {
+		return contracts.Verbose
+	}
+	if ok := findCfgSeverityLevel(packer.configSeverityMapping.Information, severityText); ok {
+		return contracts.Information
+	}
+	if ok := findCfgSeverityLevel(packer.configSeverityMapping.Warning, severityText); ok {
+		return contracts.Warning
+	}
+	if ok := findCfgSeverityLevel(packer.configSeverityMapping.Error, severityText); ok {
+		return contracts.Error
+	}
+	if ok := findCfgSeverityLevel(packer.configSeverityMapping.Critical, severityText); ok {
+		return contracts.Critical
 	}
 
 	packer.logger.Warn("Unknown Severity Level", zap.String("Severity Level", severityText))
 	return contracts.Verbose
+}
+
+func findCfgSeverityLevel(cfgSeverityLevels []string, severityText string) bool {
+	for _, cfgSeverityLevel := range cfgSeverityLevels {
+		if cfgSeverityLevel == severityText {
+			return true
+		}
+	}
+	return false
 }
 
 func toAiTelemetryType(applicationInsightsAttribute string) AiTelemetryType {
@@ -239,9 +253,10 @@ func getSuccessFromAttributes(attributes pdata.Map) (bool, error) {
 	return false, errNoSuccessAttrAvailable
 }
 
-func newLogPacker(logger *zap.Logger) *logPacker {
+func newLogPacker(logger *zap.Logger, severityMapping SeverityMappingConfig) *logPacker {
 	packer := &logPacker{
-		logger: logger,
+		logger:                logger,
+		configSeverityMapping: severityMapping,
 	}
 	return packer
 }

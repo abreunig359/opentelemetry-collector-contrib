@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/microsoft/ApplicationInsights-Go/appinsights"
+	"github.com/microsoft/ApplicationInsights-Go/appinsights/contracts"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.uber.org/zap"
@@ -33,6 +34,13 @@ const (
 
 var (
 	errUnexpectedConfigurationType = errors.New("failed to cast configuration to Azure Monitor Config")
+	defaultSeverityMapping         = SeverityMappingConfig{
+		Verbose:     []string{contracts.Verbose.String()},
+		Information: []string{contracts.Information.String()},
+		Warning:     []string{contracts.Warning.String()},
+		Error:       []string{contracts.Error.String()},
+		Critical:    []string{contracts.Critical.String()},
+	}
 )
 
 // NewFactory returns a factory for Azure Monitor exporter.
@@ -56,6 +64,7 @@ func createDefaultConfig() config.Exporter {
 		Endpoint:         defaultEndpoint,
 		MaxBatchSize:     1024,
 		MaxBatchInterval: 10 * time.Second,
+		SeverityMapping:  defaultSeverityMapping,
 	}
 }
 

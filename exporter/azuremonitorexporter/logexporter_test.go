@@ -37,6 +37,13 @@ const (
 )
 
 var (
+	severityLevelMap = map[string]contracts.SeverityLevel{
+		"Verbose":     contracts.Verbose,
+		"Information": contracts.Information,
+		"Warning":     contracts.Warning,
+		"Error":       contracts.Error,
+		"Critical":    contracts.Critical,
+	}
 	testLogs = []byte(`{"resourceLogs":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"dotnet"}}]},"scopeLogs":[{"scope":{},"logRecords":[{"timeUnixNano":"1643240673066096200","severityText":"Information","body":{"stringValue":"Message Body"},"flags":1,"traceId":"7b20d1349ef9b6d6f9d4d1d4a3ac2e82","spanId":"0c2ad924e1771630"}]}]}]}`)
 )
 
@@ -96,7 +103,7 @@ func getLogsExporter(config *Config, transportChannel transportChannel) *logExpo
 }
 
 func getLogPacker() *logPacker {
-	return newLogPacker(zap.NewNop())
+	return newLogPacker(zap.NewNop(), defaultSeverityMapping)
 }
 
 func getTestLogs(tb testing.TB) pdata.Logs {

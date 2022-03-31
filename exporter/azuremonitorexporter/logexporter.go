@@ -31,7 +31,7 @@ type logExporter struct {
 
 func (exporter *logExporter) onLogData(context context.Context, logData pdata.Logs) error {
 	resourceLogs := logData.ResourceLogs()
-	logPacker := newLogPacker(exporter.logger)
+	logPacker := newLogPacker(exporter.logger, exporter.config.SeverityMapping)
 
 	for i := 0; i < resourceLogs.Len(); i++ {
 		instrumentationLibraryLogs := resourceLogs.At(i).ScopeLogs()
